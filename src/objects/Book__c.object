@@ -51,17 +51,7 @@
     <enableSearch>false</enableSearch>
     <enableSharing>true</enableSharing>
     <enableStreamingApi>true</enableStreamingApi>
-    <fields>
-        <fullName>Price__c</fullName>
-        <externalId>false</externalId>
-        <label>Price</label>
-        <precision>18</precision>
-        <required>false</required>
-        <scale>2</scale>
-        <trackTrending>false</trackTrending>
-        <type>Number</type>
-        <unique>false</unique>
-    </fields>
+  
      <fields>
         <fullName>TempPrice__c</fullName>
         <externalId>false</externalId>
