@@ -3,36 +3,23 @@
 
  
 
-                <target name="validateInt" depends="proxy">
+                <target name="validateInt" >
 
-                  <sf:deploy username="getdeployuser@ge.com.int" password="Getdeploy9$" serverurl="https://test.salesforce.com" deployRoot="package/src" checkOnly="true" rollbackOnError="true"/>
+                  <sf:deploy username="smunthala@techm.com" password="THUR12#4decm" serverurl="https://login.salesforce.com" deployRoot="package/src" checkOnly="true" rollbackOnError="true"/>
 
     </target>
 
                
 
-                <target name="validateUAT" depends="proxy">
+                <target name="validateUAT" >
 
-                  <sf:deploy username="getdeployuser@ge.com.uat" password="Getdeploy9$" serverurl="https://test.salesforce.com" deployRoot="package/src" checkOnly="true" rollbackOnError="true"/>
+                  <sf:deploy username="smunthala@techm.com" password="Getdeploy9$" serverurl="https://login.salesforce.com" deployRoot="package/src" checkOnly="true" rollbackOnError="true"/>
 
     </target>
 
    
 
-                <target name="proxy">
-
-                                <property name="proxy.host" value="3.28.29.241" />
-
-                                <property name="proxy.port" value="88"/>
-
-                                <property name="proxy.user" value="${proxy.user}"/>
-
-                                <property name="proxy.pwd" value="${proxy.pwd}"/>
-
-                                <setproxy proxyhost="${proxy.host}" proxyport="${proxy.port}" proxyuser="${proxy.user}" proxypassword="${proxy.pwd}" />
-
-                </target>
-
+      
  
 
 </project>
