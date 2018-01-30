@@ -1,0 +1,38 @@
+
+<project name="Org Validation" default="test" basedir="." xmlns:sf="antlib:com.salesforce">
+
+ 
+
+                <target name="validateInt" depends="proxy">
+
+                  <sf:deploy username="getdeployuser@ge.com.int" password="Getdeploy9$" serverurl="https://test.salesforce.com" deployRoot="package/src" checkOnly="true" rollbackOnError="true"/>
+
+    </target>
+
+               
+
+                <target name="validateUAT" depends="proxy">
+
+                  <sf:deploy username="getdeployuser@ge.com.uat" password="Getdeploy9$" serverurl="https://test.salesforce.com" deployRoot="package/src" checkOnly="true" rollbackOnError="true"/>
+
+    </target>
+
+   
+
+                <target name="proxy">
+
+                                <property name="proxy.host" value="3.28.29.241" />
+
+                                <property name="proxy.port" value="88"/>
+
+                                <property name="proxy.user" value="${proxy.user}"/>
+
+                                <property name="proxy.pwd" value="${proxy.pwd}"/>
+
+                                <setproxy proxyhost="${proxy.host}" proxyport="${proxy.port}" proxyuser="${proxy.user}" proxypassword="${proxy.pwd}" />
+
+                </target>
+
+ 
+
+</project>
