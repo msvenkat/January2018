@@ -1,25 +1,177 @@
+<!--
+	DO NOT update this file unless required and confirmed by the TRACK LEADS
+	@author: Test
+	@last-modified-date: Feb2 018
+	
+	The available targets are -
+	deploy - deploys the code in the destination org refering to the package.xml file (define the source 
+			 org parameters in JENKINS, this is used to create a temp folder to match files with package.xml)
+	destroyPre - deletes the components first that are in destructiveChangesPre.xml and proceeds with the 
+				 deployment as in the above target.
+	destroyPost - Proceeds with the deployment as in the first target and then deletes the components 
+				  that are in destructiveChangesPost.xml.
+	quickDeploy - Performs a quick deploy. Validation id should be provided in the JENKINS config parameters
+	
+	The team can have customized names for package files used for deployment 
+	(package.xml/destructiveChangesPre.xml/destructiveChangesPost.xml with their own names)
+	but those names should also be specified in JENKINS config build properties (by default, it will be having the original names)
+	
+	The advantage is - deployment can be split up into 2 or more packages and there can be multiple build step 
+	created in JENKINS replicating the properties of the first step that results in multiple automated deployments 
+-->
 
-<project name="Org Validation" default="test" basedir="." xmlns:sf="antlib:com.salesforce">
+<project name="January2018" default="deploy" basedir="." xmlns:sf="antlib:com.salesforce">
 
- 
+    <property file="build.properties"/>
+    <property environment="env"/>
+	
+	<!-- Dependent Target to build the deployment folder based on the components present in package.xml -->
+    <target name="prepDeploymentFolder">
 
-                <target name="validateInt" >
+        <!-- Remove previous deployment folder from workspace-->
+        <delete dir="${sf.deploy}"/>
+    	<!-- Remove previous temporary source folder from workspace-->
+    	<delete dir="${sf.tmpsrc}"/>
 
-                  <sf:deploy username="smunthala@techm.com" password="THUR12#4decm" serverurl="https://login.salesforce.com" deployRoot="package/src" checkOnly="true" rollbackOnError="true"/>
+        <!-- Create deploymet folder -->
+        <mkdir dir="${sf.deploy}"/>
+    	<!-- Create temporary source folder -->
+    	<mkdir dir="${sf.tmpsrc}"/>
+        	
+    	<!-- ****** Retrieve user modified components from source org based on package.xml into temp folder ****** -->
+    	<copy file="${sf.src}/${sf.package.xml}" todir="${sf.tmpsrc}"/>
+    	<sf:retrieve
+			username="${sf.fromusername}"
+			password="${sf.frompassword}"
+			serverurl="${sf.fromserverurl}"
+			retrieveTarget="${sf.tmpsrc}"
+			unpackaged="${sf.src}/${sf.package.xml}"
+			maxPoll="1000"
+			pollWaitMillis="10000" />
 
+    	<!-- ****** Copy the components temp folder(directly from the source-org) to the deployment folder except the below 
+    	highlighted files for deployment (below files will be taken from GIT) ****** -->
+        <copy todir="${sf.deploy}" overwrite="true">
+        	  <fileset dir="${sf.tmpsrc}">
+        	  	<patternset>
+        	  		<exclude name="**/**/*.cls"/>
+        	  		<exclude name="**/**/*.cls-meta.xml"/>
+        	  		<exclude name="**/**/*.trigger"/>
+        	  		<exclude name="**/**/*.trigger-meta.xml"/>
+        	  		<exclude name="**/**/*.page"/>
+        	  		<exclude name="**/**/*.page-meta.xml"/>
+        	  		<exclude name="**/**/*.resource"/>
+        	  		<exclude name="**/**/*.resource-meta.xml"/>
+        	  		<exclude name="**/**/*.component"/>
+        	  		<exclude name="**/**/*.component-meta.xml"/>
+        	  		<exclude name="**/**/*.object"/>
+        	  	</patternset>
+               </fileset>
+        </copy>
+
+    	<!-- ****** Compare the code picked from source-org(temp folder) and GIT branch(src folder). Copy only some of the files
+    	(highlighted below) from GIT that are committed by the user to deployment folder ****** -->
+    	<copy todir="${sf.deploy}" overwrite="true">
+    		  <fileset dir="${sf.src}">
+    		  	<patternset>
+    		  		<include name="**/**/*.cls"/>
+    		  		<include name="**/**/*.cls-meta.xml"/>
+    		  		<include name="**/**/*.trigger"/>
+    		  		<include name="**/**/*.trigger-meta.xml"/>
+    		  		<include name="**/**/*.page"/>
+    		  		<include name="**/**/*.page-meta.xml"/>
+    		  		<include name="**/**/*.resource"/>
+    		  		<include name="**/**/*.resource-meta.xml"/>
+    		  		<include name="**/**/*.component"/>
+    		  		<include name="**/**/*.component-meta.xml"/>
+    		  		<include name="**/**/*.object"/>
+    		  		<!-- <include name="**/**/*.*"/> -->
+    		  		<include name="**/${sf.package.xml}"/>
+    		  	</patternset>
+    			<present present="both" targetdir="${sf.tmpsrc}" />
+              </fileset>
+        </copy>
+    	
+    	<!-- ****** Renaming the customized-package.xml file name to its original name, by default, it will be package.xml itself as the file name in JENKINS config ****** -->
+    	<!-- With the help of this, team can have their own package.xml names like DPM_part1_package.xml etc. 
+    		 by which the name should be provided in JENKINS config properties -->
+    	<rename src="${sf.deploy}/${sf.package.xml}" dest="${sf.deploy}/package.xml"/>
     </target>
 
-               
-
-                <target name="validateUAT" >
-
-                  <sf:deploy username="smunthala@techm.com" password="Getdeploy9$" serverurl="https://login.salesforce.com" deployRoot="package/src" checkOnly="true" rollbackOnError="true"/>
-
+	<!-- Target to deploy the components to the destination org -->
+    <target name="deploy" depends="prepDeploymentFolder">
+    	<!-- ****** Deploy to target org using Force.com ANT deploy task for deployment ****** -->
+ 	    <sf:deploy username="${sf.username}" 
+ 	   		password="${sf.password}" 
+            serverurl="${sf.serverurl}"
+            pollWaitMillis="${sf.pollWaitmillis}"
+            maxPoll="${sf.maxpoll}"
+            deployRoot="${sf.deploy}"
+            checkOnly="${sf.checkonly}"
+            logType="Detail" 
+            runAllTests="${sf.runalltests}"
+            allowMissingFiles="false" 
+            autoUpdatePackage="false" />
+  	    <!-- Delete deploy folder after the deployment -->
+    	<delete dir="${sf.deploy}"/>
     </target>
-
-   
-
-      
- 
-
+	
+	<!-- Target to first DELETE and then DEPLOY the components to the destination org -->
+	<target name="destroyPre" depends="prepDeploymentFolder">
+		<!-- Copy the PRE destructive xml file into the target folder -->
+		<copy file="${sf.src}/${sf.destructiveChangesPre.xml}" todir="${sf.deploy}"/>
+		<!-- ****** Renaming the customized-pre-destructive xml file name to its original name, by default, it will be destructiveChangesPre.xml itself as the file name in JENKINS config ****** -->
+		<!-- With the help of this, team can have their own destructive xml names like RM_Pre_destructive.xml etc. 
+		     by which the name should be provided in JENKINS config properties -->
+		<rename src="${sf.deploy}/${sf.destructiveChangesPre.xml}" dest="${sf.deploy}/destructiveChangesPre.xml"/>		
+		<!-- ****** Deploy to target org using Force.com ANT deploy task which executes deletion first followed by deployment ****** -->
+		<sf:deploy username="${sf.username}" 
+ 	   		password="${sf.password}" 
+            serverurl="${sf.serverurl}"
+            pollWaitMillis="${sf.pollWaitmillis}"
+            maxPoll="${sf.maxpoll}"
+            deployRoot="${sf.deploy}"
+            checkOnly="${sf.checkonly}"
+            logType="Detail" 
+            runAllTests="${sf.runalltests}"
+            allowMissingFiles="false" 
+            autoUpdatePackage="false"
+			purgeOnDelete="true"> 
+  		</sf:deploy>
+	</target>
+	
+	<!-- Target to first DEPLOY and then DELETE the components to the destination org -->
+	<target name="destroyPost" depends="prepDeploymentFolder">
+		<!-- Copy the POST destructive xml file into the target folder -->
+		<copy file="${sf.src}/${sf.destructiveChangesPost.xml}" todir="${sf.deploy}"/>
+		<!-- ****** Renaming the customized-post-destructive xml file name to its original name, by default, it will be destructiveChangesPost.xml itself as the file name in JENKINS config ****** -->
+		<!-- With the help of this, team can have their own destructive xml names like RM_Post_destructive.xml etc. 
+		     by which the name should be provided in JENKINS config properties -->
+		<rename src="${sf.deploy}/${sf.destructiveChangesPost.xml}" dest="${sf.deploy}/destructiveChangesPost.xml"/>
+		<!-- ****** Deploy to target org using Force.com ANT deploy task which deploys the components first followed by deletion ****** -->
+		<sf:deploy username="${sf.username}" 
+ 	   		password="${sf.password}" 
+            serverurl="${sf.serverurl}"
+            pollWaitMillis="${sf.pollWaitmillis}"
+            maxPoll="${sf.maxpoll}"
+            deployRoot="${sf.deploy}"
+            checkOnly="${sf.checkonly}"
+            logType="Detail" 
+            runAllTests="${sf.runalltests}"
+            allowMissingFiles="false" 
+            autoUpdatePackage="false"
+			purgeOnDelete="true"> 
+  		</sf:deploy>
+	</target>
+	
+	<!-- Target to do a QUICK DEPLOY to the destination org after validation -->
+	<target name="quickDeploy">
+		<sf:deployRecentValidation 
+			username="${sf.username}" 
+			password="${sf.password}" 
+			serverurl="${sf.serverurl}"
+			maxPoll="${sf.maxpoll}" 
+			recentValidationId="${sf.recentValidationId}"/>
+	</target>
+	
 </project>
