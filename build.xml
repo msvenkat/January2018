@@ -40,14 +40,14 @@
         	
     	<!-- ****** Retrieve user modified components from source org based on package.xml into temp folder ****** -->
     	<copy file="${sf.src}/${sf.package.xml}" todir="${sf.tmpsrc}"/>
-    	<!--<sf:retrieve
+    	<sf:retrieve
 			username="${sf.fromusername}"
 			password="${sf.frompassword}"
 			serverurl="${sf.fromserverurl}"
 			retrieveTarget="${sf.tmpsrc}"
 			unpackaged="${sf.src}/${sf.package.xml}"
 			maxPoll="1000"
-			pollWaitMillis="10000" /> -->
+			pollWaitMillis="10000" /> 
 
     	<!-- ****** Copy the components temp folder(directly from the source-org) to the deployment folder except the below 
     	highlighted files for deployment (below files will be taken from GIT) ****** -->
